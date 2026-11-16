@@ -13,12 +13,49 @@ from typing import Any, Dict, List
 from support import (MODEL, SYSTEM_PROMPT, call_local, execute_tool, mcp_client,
                      new_session, next_available_day, record_tool_result,
                      runtime_preamble)
+from support.mock_backend import load_policy
 
 MAX_TOOL_CALLS = 8  # Larkspur's own build capped the loop here; then a human takes over.
 
 TONE_ADDENDUM = ""                       # ✏️ Build 4, step 4.1, intelligence goal
-EXTRA_TOOLS: List[Dict[str, Any]] = []   # ✏️ Build 2, step 2.1: schemas for the tools you add
-LOCAL_TOOLS: Dict[str, Any] = {}         # ✏️ Build 2, step 2.1: the functions behind them
+EXTRA_TOOLS: List[Dict[str, Any]] = [
+{
+    "name": "cause_in_plain_words",
+    "description": "Turn the cause_code that get_flight_status returned into a short phrase a "
+            "customer can understand and repeat to others, taken from Larkspur's approved "
+            "customer wording. Call it after get_flight_status whenever the customer asks "
+            "why their flight was cancelled or delayed. Returns the phrase, e.g. WX -> "
+            "'weather'. Use this phrase instead of the internal code.",
+    "input_schema": {
+            "type": "object",
+            "properties": {
+                "cause_code": {
+                    "type": "string",
+                    "enum": ["WX", "ATC", "MX", "CREW", "SEC"],
+                    "description": "The cause_code field from get_flight_status.",
+                },
+                "language": {
+                    "type": "string",
+                    "enum": ["en", "es"],
+                    "description": "The customer's language from lookup_booking. Defaults to en.",
+                },
+            },
+            "required": ["cause_code"],
+        },
+}
+
+]
+
+def cause_in_plain_words(cause_code, language="en"):
+    """Larkspur's approved customer wording for a disruption cause code."""
+    labels = load_policy()["cause_labels_customer"]
+    if cause_code not in labels:
+        return {"error": "Unknown cause_code %s. Expected one of: %s"
+                         % (cause_code, ", ".join(sorted(labels)))}
+    wording = labels[cause_code].get(language or "en", labels[cause_code]["en"])
+    return {"cause_code": cause_code, "language": language or "en",
+            "customer_wording": wording}   # ✏️ Build 2, step 2.1: schemas for the tools you add
+LOCAL_TOOLS: Dict[str, Any] = {"cause_in_plain_words": cause_in_plain_words}        # ✏️ Build 2, step 2.1: the functions behind them
 
 
 def text_of(response) -> str:
