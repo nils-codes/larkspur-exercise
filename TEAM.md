@@ -13,5 +13,5 @@ decides in the moment who does what.
 
 - Michael Temerev
 - Islam Nabil
-- Pedro Estacio
+- Pedro Estácio
 - Nils Fröhling
