@@ -11,7 +11,7 @@ Steps and gates:  https://anthropicpartnerbasecamp.bts.com/
 from __future__ import annotations
 from typing import Any, Dict, List
 from support import (MODEL, SYSTEM_PROMPT, call_local, execute_tool, mcp_client,
-                     new_session, next_available_day, record_tool_result,
+                     new_session, record_tool_result,
                      runtime_preamble)
 from support.mock_backend import load_policy
 
@@ -19,22 +19,6 @@ MAX_TOOL_CALLS = 8  # Larkspur's own build capped the loop here; then a human ta
 
 TONE_ADDENDUM = ""                       # ✏️ Build 4, step 4.1, intelligence goal
 EXTRA_TOOLS: List[Dict[str, Any]] = [
-    {
-        "name": "next_available_day",
-        "description": (
-            "Look up when the next flights with available seats are leaving from a specific airport. "
-            "Use this when a customer wants to know about the next possible flights."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "origin": {"type": "string", "description": "3-char airport code"},
-                "dest": {"type": "string", "description": "3-char airport code"},
-                "date": {"type": "string", "description": "The date of the original flight YYYY-MM-DD"}
-            },
-            "required": ["origin", "dest", "date"]
-        }
-    },
     {
         "name": "cause_in_plain_words",
         "description": "Turn the cause_code that get_flight_status returned into a short phrase a "
@@ -58,23 +42,6 @@ EXTRA_TOOLS: List[Dict[str, Any]] = [
             },
             "required": ["cause_code"],
         },
-    },
-    {
-        "name": "fare_rules",
-        "description": (
-            "Return the booking's fare family and the Larkspur fare rules handbook text. "
-            "Use it when the customer asks what their ticket itself allows, independent of this disruption: "
-            "voluntary changes, change fees, refundability of a voluntary cancellation, travel credit, "
-            "same-day changes, or what the chat assistant is not allowed to do. "
-            "Do NOT use it to decide what this customer gets for a delay or cancellation (rebooking window, "
-            "refund eligibility, vouchers, hotel, goodwill): that is check_policy, and when the two disagree "
-            "check_policy's row wins. Needs only the PNR."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {"pnr": {"type": "string"}},
-            "required": ["pnr"],
-        },
     }
 ]   # ✏️ Build 2, step 2.1: schemas for the tools you add
 
@@ -88,28 +55,8 @@ def cause_in_plain_words(cause_code, language="en"):
     return {"cause_code": cause_code, "language": language or "en",
             "customer_wording": wording}
 
-def get_fare_rules(pnr):
-    """The handbook excerpt, plus which fare family this booking is on so
-    Claude knows which paragraph of section 4 applies."""
-    try:
-        booking = mock_backend.get_booking_raw(pnr)
-    except mock_backend.NotFound as e:
-        return {"error": str(e)}
-
-    rules_file = Path(__file__).parent / "data" / "americas" / "fare_rules_excerpt.md"
-    rules = rules_file.read_text(encoding="utf-8")
-
-    return {
-        "pnr": pnr,
-        "fare_family": booking["fare_family"],
-        "loyalty_tier": booking["loyalty"]["tier"],
-        "fare_rules": rules,
-    }
-
 LOCAL_TOOLS: Dict[str, Any] = {
-    "next_available_day": next_available_day,
-    "cause_in_plain_words": cause_in_plain_words,
-    "fare_rules": get_fare_rules
+    "cause_in_plain_words": cause_in_plain_words
 }
 
 def text_of(response) -> str:
