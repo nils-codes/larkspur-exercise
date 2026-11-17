@@ -199,6 +199,31 @@
           "type": "judge"
         }
       ]
+    },
+    {
+      "id": "ref-0102",
+      "suite": "delay_policy",
+      "hard_gate": true,
+      "shape": "A short delay, not long enough for a free change",
+      "author": "MTem24",
+      "pnr": "M3XR8T",
+      "last_name": "Whitaker",
+      "message": "I need to get urgently to my destination, my flight is running late, I need to change it and i expect it free of charge!",
+      "expect": "Explain that the delay is too short for a free of charge, dont invent flight facts",
+      "graders": [
+        {
+          "type": "rules",
+          "must_call": [
+            "check_policy", "lookup the booking"
+          ],
+          "must_not_call": [
+            "issue_voucher" ,  "confirm rebooking"
+          ]
+        },
+        {
+          "type": "judge"
+        }
+      ]
     }
   ]
 }
