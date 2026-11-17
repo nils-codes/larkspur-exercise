@@ -8,7 +8,7 @@ Number:
 Safety check:
 Next:
 Still broken:
-Lever: <cost | speed | intelligence>
+Lever: cost
 
 ## Priya asked
 
